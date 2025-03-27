@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: movies-payment-service
+
+server:
+  port: 0
+
+eureka:
+  client:
+    service-url:
+      defaultZone: "http://localhost:8080/eureka"
+
+axon:
+  serializer:
+    general: jackson
+    events: jackson
+    messages: jackson
