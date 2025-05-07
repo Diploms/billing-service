@@ -1,0 +1,35 @@
+services:
+  mongo:
+    image: mongo:latest
+    command: --replSet rs0
+    environment:
+      MONGO_INITDB_DATABASE: db
+    healthcheck:
+      test: mongosh --eval 'db.runCommand("ping").ok' localhost:27017/test --quiet
+      interval: 2s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "10122:27017"
+    networks:
+      - comment_network
+
+  mongo-init:
+    image: mongo:latest
+    depends_on:
+      - mongo
+    networks:
+      - comment_network
+    command: >
+      sh -c "sleep 5; mongosh --host mongo:27017 --eval '
+      rs.initiate( {
+        _id : \"rs0\",
+        members: [
+          { _id: 0, host: \"mongo:27017\" }
+        ]
+      })
+      '"
+
+networks:
+  comment_network:
+    driver: bridge

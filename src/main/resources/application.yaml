@@ -1,6 +1,10 @@
 spring:
   application:
     name: movies-payment-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:10122/db
+      database: db
 
 server:
   port: 0
