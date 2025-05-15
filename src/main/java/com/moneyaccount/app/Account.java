@@ -10,11 +10,17 @@ import org.axonframework.eventsourcing.EventSourcingHandler;
 import org.axonframework.modelling.command.AggregateIdentifier;
 import org.axonframework.spring.stereotype.Aggregate;
 import ua.karazin.moviesbaseevents.moneyaccount.revision1.AccountCreatedEvent1;
-import ua.karazin.moviesbaseevents.moneyaccount.revision1.AccountDepleteRejectedEvent1;
-import ua.karazin.moviesbaseevents.moneyaccount.revision1.AccountDepletedEvent1;
+import ua.karazin.moviesbaseevents.moneyaccount.revision1.AccountDepleteRejectedOnOrderEvent1;
+import ua.karazin.moviesbaseevents.moneyaccount.revision1.AccountDepleteRejectedOnSubscriptionRenewEvent1;
+import ua.karazin.moviesbaseevents.moneyaccount.revision1.AccountDepleteRejectedOnSubscriptionStartEvent1;
+import ua.karazin.moviesbaseevents.moneyaccount.revision1.AccountDepletedOnOrderEvent1;
+import ua.karazin.moviesbaseevents.moneyaccount.revision1.AccountDepletedOnSubscriptionRenewEvent1;
+import ua.karazin.moviesbaseevents.moneyaccount.revision1.AccountDepletedOnSubscriptionStartEvent1;
 import ua.karazin.moviesbaseevents.moneyaccount.revision1.AccountReplenishedEvent1;
 import ua.karazin.moviesbaseevents.moneyaccount.revision1.CreateAccountCommand1;
-import ua.karazin.moviesbaseevents.moneyaccount.revision1.DepleteAccountCommand1;
+import ua.karazin.moviesbaseevents.moneyaccount.revision1.DepleteAccountOnOrderCommand1;
+import ua.karazin.moviesbaseevents.moneyaccount.revision1.DepleteAccountOnSubscriptionRenewCommand1;
+import ua.karazin.moviesbaseevents.moneyaccount.revision1.DepleteAccountOnSubscriptionStartCommand1;
 import ua.karazin.moviesbaseevents.moneyaccount.revision1.ReplenishAccountCommand1;
 
 import java.math.BigDecimal;
@@ -52,12 +58,35 @@ public class Account {
   }
 
   @CommandHandler
-  private void handle(DepleteAccountCommand1 command) {
+  private void handle(DepleteAccountOnOrderCommand1 command) {
     if (is(command.amount()).isNegative() || is(command.amount()).gt(this.balance)) {
-      apply(new AccountDepleteRejectedEvent1(command.accountId(), command.orderId()));
+      apply(new AccountDepleteRejectedOnOrderEvent1(command.accountId(), command.orderId()));
     }
 
-    apply(new AccountDepletedEvent1(command.accountId(), command.orderId(), command.amount()));
+    apply(
+        new AccountDepletedOnOrderEvent1(command.accountId(), command.orderId(), command.amount()));
+  }
+
+  @CommandHandler
+  private void handle(DepleteAccountOnSubscriptionStartCommand1 command) {
+    if (is(command.price()).isNegative() || is(command.price()).gt(this.balance)) {
+      apply(new AccountDepleteRejectedOnSubscriptionStartEvent1(command.accountId(),
+          command.profileId(), command.transactionId(), command.price()));
+    }
+
+    apply(new AccountDepletedOnSubscriptionStartEvent1(command.accountId(), command.profileId(),
+        command.transactionId(), command.price()));
+  }
+
+  @CommandHandler
+  private void handle(DepleteAccountOnSubscriptionRenewCommand1 command) {
+    if (is(command.price()).isNegative() || is(command.price()).gt(this.balance)) {
+      apply(new AccountDepleteRejectedOnSubscriptionRenewEvent1(command.accountId(),
+          command.profileId(), command.transactionId(), command.price()));
+    }
+
+    apply(new AccountDepletedOnSubscriptionRenewEvent1(command.accountId(), command.profileId(),
+        command.transactionId(), command.price()));
   }
 
   @EventSourcingHandler
@@ -72,7 +101,17 @@ public class Account {
   }
 
   @EventSourcingHandler
-  private void on(AccountDepletedEvent1 event) {
+  private void on(AccountDepletedOnOrderEvent1 event) {
+    this.balance = this.balance.subtract(event.amount());
+  }
+
+  @EventSourcingHandler
+  private void on(AccountDepletedOnSubscriptionStartEvent1 event) {
+    this.balance = this.balance.subtract(event.amount());
+  }
+
+  @EventSourcingHandler
+  private void on(AccountDepletedOnSubscriptionRenewEvent1 event) {
     this.balance = this.balance.subtract(event.amount());
   }
 }
